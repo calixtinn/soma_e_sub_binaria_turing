@@ -1,0 +1,207 @@
+;===========================================
+; Trabalho Prático de Teoria da Computação 
+; Aluno: Matheus Calixto 				   
+; Prof: Wallace Rodrigues				   
+;===========================================
+
+
+0 * * l delimitador ; Marcar um Delimitador no início da fita.
+
+delimitador _ # r 0ii ; Delimitador marcado (#) antes do início da entrada.
+
+0ii * * r 0ii ; Caminha para a direita ate encontrar o sinal da operação.
+0ii + + * copia ; Copia o numero mais a esquerda para atrás do delimitador. (SOMA)
+0ii - - * copia_sub ; Copia o número mais a direita para detrás do delimitador. (SUBTRAÇÂO)
+
+; *****************************************
+; PROCESSO DE CÓPIA NO CASO DA SOMA BINÁRIA
+; *****************************************
+
+; Estado copia -> Faz a cópia do número mais a esquerda para detrás do delimitador.
+; Estado copia_1 -> Copia os números 1's
+; Estado copia_0 -> Copia os números 0's
+
+copia * * l copia
+copia 1 y * copia_1
+copia 0 x * copia_0
+copia # # r procura_op ; Após ter copiado tudo, procura-se qual a operação a se fazer.
+
+copia_1 * * l copia_1
+copia_1 _ 1 * 0ii
+
+copia_0 * * l copia_0
+copia_0 _ 0 * 0ii
+
+; *****************************************
+; PROCESSO DE CÓPIA NO CASO DA SUBTRAÇÃO BINÁRIA
+; *****************************************
+
+; Estado copia_sub -> Faz a cópia do número mais a direita para detrás do delimitador.
+; Estado copia_1s -> Copia os números 1's
+; Estado copia_0s -> Copia os números 0's
+
+copia_sub * * r copia_sub
+copia_sub = = l copia_sub2
+
+copia_sub2 * * l copia_sub2
+copia_sub2 1 y * copia_1s
+copia_sub2 0 x * copia_0s
+copia_sub2 - - * procura_op ; Após ter copiado tudo, procura-se qual a operação a se fazer.
+
+copia_1s * * l copia_1s
+copia_1s _ 1 * 0ii
+
+copia_0s * * l copia_0s
+copia_0s _ 0 * 0ii
+
+; *******************************
+; INDICA QUAL OPERAÇÃO SERÁ FEITA
+; *******************************
+
+procura_op y 1 r procura_op
+procura_op x 0 r procura_op
+procura_op + + * 1 ; Encontrou a operação SOMA
+procura_op - - * 1_sub ; Encontrou a operação SUBTRAÇÂO
+
+; *************************************************
+; ESTADOS REREFENTES À SUBTRAÇÃO BINÁRIA ABAIXO!!!!
+; *************************************************
+
+1_sub * * r 1_sub
+1_sub - - l 2s
+
+2s 1 y * 3s1 ; Caso for 1 vai para o estado 3s1 
+2s 0 x * 3s0 ; Caso for 0 vai para o estado 3s0
+2s z x * 3s1 ; é um "zero" mas vai como se fosse 1!
+2s u y * 3s0 ; é um "um" mas vai como se fosse 0!
+2s * * l 2s
+2s _ _ * mover_result ; Mover o resultado para o final da fita.
+
+3s1 * * l 3s1
+3s1 # # l 4s1 ; Vou para o estado 4s1 com 1 na "memória"
+
+3s0 * * l 3s0 ; Vou para o estado 4s0 com 0 na "memória"
+3s0 # # l 4s0
+
+4s1 * * l 4s1
+4s1 _ 1 * 5s ; 1 - nada = 1
+4s1 0 1 * 5s ; 1 - 0 = 1
+4s1 1 0 * 5s ; 1 - 1 = 0
+
+4s0 * * l 4s0
+4s0 _ 0 * 5s ; 0 - nada = 0
+4s0 0 0 * 5s ; 0 - 0 = 0
+4s0 1 y * 4s0i ; 0 - 1 = 1 (pegando emprestado da casa de um nível superior, ou seja, 2-1 = 1)
+
+4s0i * * r 4s0i
+4s0i # # r 4s0ii
+
+4s0ii x x l 4s0iii 
+4s0ii y y l 4s0iii
+4s0ii * * r 4s0ii
+
+
+; Caso o algarismo mais a esquerda depois dos já verificados(x,y) for 0, então
+; quer dizer que não foi dele que eu peguei emprestado!! Então ele vale 1, pois,
+; ao pedir emprestado de uma casa que vale 1, eu tenho 10 (2), então pego emprestado 1 e fica
+; 10 - 01 = 1. Por isso vou atualizando casa por casa enquanto eu não encontrar a casa que vale
+; 1 da qual eu "pedi emprestado".
+
+4s0iii 0 z l 4s0iv 
+
+4s0iv 0 z l 4s0iv
+4s0iv 1 u * 1_sub ; Encontrei a casa que "pedi emprestado"! Agora ela vale 0.
+4s0iv # # * 1_sub
+
+; Se o algarismo mais a esquerda dos já verificados for 1, então foi dele que eu pedi
+; emprestado! Logo ele passa a valer 0.
+
+4s0iii 1 u * 1_sub
+4s0iii # # * 1_sub
+4s0iii * * * 1_sub
+
+5s * * r 5s
+5s # # l marcar_s 
+
+; Marcando os já verificados...
+
+marcar_s * * l marcar_s
+marcar_s 0 x * 1_sub
+marcar_s 1 y * 1_sub
+
+; ********************************************
+; ESTADOS REREFENTES À SOMA BINÁRIA ABAIXO!!!!
+; ********************************************
+
+;Estado 1->Caminha na fita até encontrar (=), e pega o primeiro elemento mais a esquerda.
+
+1 * * r 1
+1 = = l 2 
+
+2 1 y * 3u ; Caso for 1, vai para o Estado 3 um
+2 0 x * 3z ; Caso for 0, vai para o Estado 3 zero
+2 * * l 2 ; Pula x e y
+2 + + * mover_result ; Caso não tenha mais números, mover o resultado para frente do (=).
+
+3u * * l 3u ; Caminha até achar o #
+3u # # l 4u ; Achou o #, vou para o estado 4 um (1 na "memoria")
+
+3z * * l 3z ; Caminha até achar o #
+3z # # l 4z ; Achou o #, vou para o estado 4 zero (0 na "memoria")
+
+4u * * l 4u ; Ignorando x e y
+4u _ 1 * 5
+4u 0 1 * 5 ; 1 + 0 = 1
+4u 1 0 l 4u ; 1 + 1 = 10
+
+4z * * l 4z ; Ignorando x e y
+4z _ 0 * 5
+4z 0 x r 1 ; 0 + 0 = 0
+4z 1 y r 1 ; 0 + 1 = 1
+
+5 * * r 5
+5 # # l marcar 
+
+; Estado marcar = marca os números já visitados.
+
+marcar * * l marcar
+marcar 0 x * 1
+marcar 1 y * 1
+
+; ****************************************************
+; MOVE O RESULTADO PARA O FINAL DA FITA. DEPOIS DO (=)
+; ****************************************************
+
+mover_result * * l mover_result
+mover_result _ _ r copy
+
+copy y _ r anda_y
+copy 1 _ r anda_y
+copy x _ r anda_x
+copy 0 _ r anda_x
+copy # _ r corrige_entrada
+
+anda_y * * r anda_y
+anda_y = = r escreve_1
+
+anda_x * * r anda_x
+anda_x = = r escreve_0
+
+escreve_1 _ 1 * mover_result
+escreve_1 * * r escreve_1
+
+escreve_0 _ 0 * mover_result
+escreve_0 * * r escreve_0
+
+; ************************************
+; FORMATA A FITA NO MODELO SOLICITADO!
+; ************************************
+
+corrige_entrada * * r corrige_entrada
+corrige_entrada x 0 r corrige_entrada
+corrige_entrada y 1 r corrige_entrada
+corrige_entrada _ * * halt-accept
+
+
+
+
